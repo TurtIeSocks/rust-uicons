@@ -14,9 +14,9 @@ Source: https://github.com/TheArtificial/pokemon-icons
 
 ### Safe Icons
 
-- https://raw.githubusercontent.com/TurtIeSocks/rust-uicons/main/uicons/artificial/svg
-- https://raw.githubusercontent.com/TurtIeSocks/rust-uicons/main/uicons/artificial/png
-- https://raw.githubusercontent.com/TurtIeSocks/rust-uicons/main/uicons/artificial/webp
+- https://raw.githubusercontent.com/TurtIeSocks/rust-uicons/main/uicons/safe/svg
+- https://raw.githubusercontent.com/TurtIeSocks/rust-uicons/main/uicons/safe/png
+- https://raw.githubusercontent.com/TurtIeSocks/rust-uicons/main/uicons/safe/webp
 
 ## Contributing
 
