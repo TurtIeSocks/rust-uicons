@@ -11,6 +11,7 @@ pub struct Form {
 pub struct Pokemon {
     pokedex_id: u16,
     pub forms: HashMap<String, Form>,
+    default_form_id: u16,
     types: Vec<String>,
 }
 
@@ -27,18 +28,18 @@ pub struct PokemonColor<'a> {
     pub color_2: &'a str,
 }
 
-impl <'a>PokemonColor<'a> {
-  pub fn get_filename(&self) -> String {
-    format!(
-      "{}{}",
-      self.id,
-      if let Some(form) = self.form {
-        format!("_f{}", form)
-      } else {
-        "".to_string()
-      }
-    )
-  }
+impl<'a> PokemonColor<'a> {
+    pub fn get_filename(&self) -> String {
+        format!(
+            "{}{}",
+            self.id,
+            if let Some(form) = self.form {
+                format!("_f{}", form)
+            } else {
+                "".to_string()
+            }
+        )
+    }
 }
 
 const DEFAULT_COLOR: &str = "#fff";
@@ -84,7 +85,7 @@ impl Masterfile {
                 color_1,
                 color_2,
             });
-            pokemon.forms.values().for_each(|form| {
+            pokemon.forms.iter().for_each(|(form_id, form)| {
                 if let Some(form_types) = form.types.as_ref() {
                     let color_1 = if let Some(first_type) = form_types.first() {
                         color_map.get(&first_type[..]).unwrap()
@@ -98,7 +99,7 @@ impl Masterfile {
                     };
                     unique_combos.push(PokemonColor {
                         id: pokemon.pokedex_id,
-                        form: Some(form_types.len() as u16),
+                        form: Some(form_id.parse::<u16>().unwrap()),
                         color_1,
                         color_2,
                     });
@@ -116,28 +117,53 @@ pub async fn get_masterfile() -> Result<Masterfile, reqwest::Error> {
       .await
 }
 
-pub fn get_uicons_name(file: &String, masterfile: &HashMap<String, Pokemon>) -> String {
+fn has_common_substring(a: &str, b: &str, len: usize) -> bool {
+    if a.len() < len || b.len() < len {
+        return a == b
+    }
+    for i in 0..=(a.len() - len) {
+        if i+len > a.len() {
+            println!("A: {} | B: {}", a, b);
+        }
+        let substring = &a[i..i + len];
+        if b.contains(substring) {
+            return true;
+        }
+    }
+    false
+}
+
+pub fn get_uicons_name(file: &String, masterfile: &HashMap<String, Pokemon>) -> (String, bool) {
     let parts: Vec<&str> = file.split('-').collect();
     let id = parts[0];
     let properties = &parts[2..];
 
     let mut transformed_name = id.parse::<u32>().unwrap().to_string();
+    let mut is_default = false;
 
     for property in properties {
+        let property = property.split('.').nth(0).unwrap();
         if let Some(pokemon) = masterfile.get(id) {
             if let Some((form_id, _)) = pokemon.forms.iter().find(|(_, form)| {
                 if let Some(name) = &form.name {
-                    name.eq_ignore_ascii_case(property)
+                    has_common_substring(
+                        name.to_ascii_lowercase().as_str(),
+                        property.to_ascii_lowercase().as_str(),
+                        3,
+                    )
                 } else {
                     false
                 }
             }) {
                 transformed_name += &format!("_f{}", form_id);
+                if pokemon.default_form_id == form_id.to_string().parse::<u16>().unwrap_or(0) {
+                    is_default = true;
+                };
             }
         }
-        if property == &"shiny.svg" {
+        if property == "shiny" {
             transformed_name += "_s";
         }
     }
-    transformed_name
+    (transformed_name, is_default)
 }
