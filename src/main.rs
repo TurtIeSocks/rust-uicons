@@ -41,7 +41,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let fontdb = fontdb.clone();
         let handle = thread::spawn(move || {
             for file in chunk {
-                let new_name = pokemon::get_uicons_name(&file, &pokemon);
+                let (new_name, is_default) = pokemon::get_uicons_name(&file, &pokemon);
+                let mut default_name = new_name.clone().split("_").nth(0).unwrap().to_string();
+                if new_name.contains("_s") {
+                    default_name += "_s";
+                }
                 match image::move_svg(&file, &new_name) {
                     Ok(_) => {}
                     Err(err) => {
@@ -49,13 +53,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         continue;
                     }
                 }
+                if is_default {
+                    match image::move_svg(&file, &default_name) {
+                        Ok(_) => {}
+                        Err(err) => {
+                            println!("Unable to move SVG for {} | {:}", default_name, err);
+                            continue;
+                        }
+                    }
+                }
                 match image::create_png(&new_name, "artificial", 4., &fontdb) {
                     Ok(_) => {}
                     Err(_) => println!("Unable to create PNG for {}", new_name),
                 }
+                if is_default {
+                    match image::create_png(&default_name, "artificial", 4., &fontdb) {
+                        Ok(_) => {}
+                        Err(_) => println!("Unable to create PNG for {}", default_name),
+                    }
+                }
                 match image::create_webp(&new_name, "artificial") {
                     Ok(_) => {}
                     Err(_) => println!("Unable to create WEBP for {}", new_name),
+                }
+                if is_default {
+                    match image::create_webp(&default_name, "artificial") {
+                        Ok(_) => {}
+                        Err(_) => println!("Unable to create WEBP for {}", default_name),
+                    }
                 }
             }
         });
